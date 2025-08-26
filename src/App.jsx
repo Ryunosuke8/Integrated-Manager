@@ -71,6 +71,8 @@ export default function App() {
 
 
 
+
+
   const handleAddNote = (text) => {
     const newNote = {
       id: Date.now(),
@@ -103,7 +105,6 @@ export default function App() {
           notes={panelNotes["Project"]}
           onOpenNotepad={handleOpenNotepad}
           onOpenProjectManager={handleOpenProjectManager}
-
         />
       </div>
 

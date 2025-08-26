@@ -131,8 +131,6 @@ export default function Panel({ title, bgColor, widthClass, heightClass, notes, 
               </div>
             )}
           </div>
-
-
         </div>
       </div>
       

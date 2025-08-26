@@ -16,6 +16,8 @@ import reachingService from '../services/reachingService';
 import { PROJECT_FOLDER_STRUCTURE } from '../config/googleDriveConfig';
 import ProcessingResultsModal from './ProcessingResultsModal';
 
+
+
 const ProjectManager = ({ isOpen, onClose, panelTitle }) => {
   const [projects, setProjects] = useState([]);
   const [newProjectName, setNewProjectName] = useState('');
@@ -84,6 +86,10 @@ const ProjectManager = ({ isOpen, onClose, panelTitle }) => {
     icons: true
   });
   const [showMaterialSelector, setShowMaterialSelector] = useState(false);
+
+  // メニュー表示状態
+  const [showPaperMenu, setShowPaperMenu] = useState(false);
+  const [showDocumentMenu, setShowDocumentMenu] = useState(false);
   
   // 要件ファイル作成関連の状態
   const [isCreatingRequirements, setIsCreatingRequirements] = useState(false);
@@ -1631,30 +1637,163 @@ const ProjectManager = ({ isOpen, onClose, panelTitle }) => {
                     )}
                   </button>
 
-                  {/* 論文トピック提案ボタン */}
-                  <button
-                    onClick={() => handlePaperTopicSuggestion(selectedProject)}
-                    disabled={isGeneratingPaperTopic || isGeneratingSlides || isSearchingReferences || isOrganizingDocuments || isCollectingMaterials || isCreatingRequirements || isScanning || isProcessing || isGeneratingPaper}
-                    className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:bg-gray-300 flex items-center gap-2 relative group"
-                    title={!openaiService.isConfigured() ? "OpenAI API設定が必要です" : "Mainドキュメントを基に論文トピック提案を生成"}
-                  >
-                    {isGeneratingPaperTopic ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        論文提案生成中...
-                      </>
-                    ) : (
-                      <>
-                        🎓 論文トピック提案
-                        {!openaiService.isConfigured() && (
-                          <span className="text-xs bg-yellow-400 text-yellow-800 px-1 rounded">API未設定</span>
-                        )}
-                      </>
+                  {/* 論文処理系 */}
+                  <div className="relative">
+                    <div 
+                      className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors duration-200"
+                      onClick={() => setShowPaperMenu(!showPaperMenu)}
+                    >
+                      <h3 className="text-sm font-medium text-blue-800">📄 論文処理</h3>
+                      <svg 
+                        className={`w-4 h-4 text-blue-600 transition-transform duration-200 ${showPaperMenu ? 'rotate-180' : ''}`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                    
+                    {showPaperMenu && (
+                      <div className="mt-2 p-3 bg-white rounded-lg border border-blue-200 shadow-sm">
+                        <div className="flex flex-wrap gap-2">
+                          {/* 論文トピック提案ボタン */}
+                          <button
+                            onClick={() => handlePaperTopicSuggestion(selectedProject)}
+                            disabled={isGeneratingPaperTopic || isGeneratingSlides || isSearchingReferences || isOrganizingDocuments || isCollectingMaterials || isCreatingRequirements || isScanning || isProcessing || isGeneratingPaper}
+                            className="px-3 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:bg-gray-300 flex items-center gap-2 relative group text-sm"
+                            title={!openaiService.isConfigured() ? "OpenAI API設定が必要です" : "Mainドキュメントを基に論文トピック提案を生成"}
+                          >
+                            {isGeneratingPaperTopic ? (
+                              <>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                生成中...
+                              </>
+                            ) : (
+                              <>
+                                💡 論文トピック提案
+                                {!openaiService.isConfigured() && (
+                                  <span className="text-xs bg-yellow-400 text-yellow-800 px-1 rounded">API未設定</span>
+                                )}
+                              </>
+                            )}
+                            {!openaiService.isConfigured() && (
+                              <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full border border-white"></div>
+                            )}
+                          </button>
+
+                          {/* 参考論文検索ボタン */}
+                          <button
+                            onClick={() => setShowSearchSourceSelector(!showSearchSourceSelector)}
+                            disabled={isSearchingReferences || isOrganizingDocuments || isCollectingMaterials || isCreatingRequirements || isGeneratingSlides || isGeneratingPaperTopic || isGeneratingDocument || isGeneratingPaper || isScanning || isProcessing}
+                            className="px-3 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 disabled:bg-gray-300 flex items-center gap-2 text-sm"
+                          >
+                            {isSearchingReferences ? (
+                              <>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                検索中...
+                              </>
+                            ) : (
+                              <>
+                                🔍 参考論文検索
+                                <span className="text-xs">▼</span>
+                              </>
+                            )}
+                          </button>
+
+                          {/* 論文生成ボタン */}
+                          <button
+                            onClick={() => handlePaperGeneration(selectedProject)}
+                            disabled={isGeneratingPaper || isSearchingReferences || isOrganizingDocuments || isCollectingMaterials || isCreatingRequirements || isGeneratingSlides || isGeneratingPaperTopic || isGeneratingDocument || isScanning || isProcessing || !lastScanResult}
+                            className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:bg-gray-300 flex items-center gap-2 relative group text-sm"
+                            title={!lastScanResult ? "まず「変更をスキャン」を実行してください" : "Document/ForAcaとAcademiaフォルダの内容を基に論文を生成"}
+                          >
+                            {isGeneratingPaper ? (
+                              <>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                生成中...
+                              </>
+                            ) : (
+                              <>
+                                ✍️ 論文生成
+                              </>
+                            )}
+                            {!lastScanResult && (
+                              <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full border border-white"></div>
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     )}
-                    {!openaiService.isConfigured() && (
-                      <div className="absolute -top-2 -right-2 w-3 h-3 bg-yellow-400 rounded-full border-2 border-white"></div>
+                  </div>
+
+                  {/* ドキュメント処理系 */}
+                  <div className="relative">
+                    <div 
+                      className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200 cursor-pointer hover:bg-green-100 transition-colors duration-200"
+                      onClick={() => setShowDocumentMenu(!showDocumentMenu)}
+                    >
+                      <h3 className="text-sm font-medium text-green-800">📋 ドキュメント処理</h3>
+                      <svg 
+                        className={`w-4 h-4 text-green-600 transition-transform duration-200 ${showDocumentMenu ? 'rotate-180' : ''}`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                    
+                    {showDocumentMenu && (
+                      <div className="mt-2 p-3 bg-white rounded-lg border border-green-200 shadow-sm">
+                        <div className="flex flex-wrap gap-2">
+                          {/* ドキュメント生成ボタン */}
+                          <button
+                            onClick={() => handleDocumentGeneration(selectedProject)}
+                            disabled={isGeneratingDocument || isGeneratingSlides || isGeneratingPaperTopic || isSearchingReferences || isOrganizingDocuments || isCollectingMaterials || isCreatingRequirements || isScanning || isProcessing || isGeneratingPaper}
+                            className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 flex items-center gap-2 relative group text-sm"
+                            title={!openaiService.isConfigured() ? "OpenAI API設定が必要です" : "Presentationフォルダのプレゼン資料を基にMainドキュメントを生成"}
+                          >
+                            {isGeneratingDocument ? (
+                              <>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                生成中...
+                              </>
+                            ) : (
+                              <>
+                                📝 ドキュメント生成
+                                {!openaiService.isConfigured() && (
+                                  <span className="text-xs bg-yellow-400 text-yellow-800 px-1 rounded">API未設定</span>
+                                )}
+                              </>
+                            )}
+                            {!openaiService.isConfigured() && (
+                              <div className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 rounded-full border border-white"></div>
+                            )}
+                          </button>
+
+                          {/* ドキュメント整理ボタン */}
+                          <button
+                            onClick={() => setShowCategorySelector(!showCategorySelector)}
+                            disabled={isOrganizingDocuments || isSearchingReferences || isCollectingMaterials || isCreatingRequirements || isGeneratingSlides || isGeneratingPaperTopic || isGeneratingDocument || isGeneratingPaper || isScanning || isProcessing}
+                            className="px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:bg-gray-300 flex items-center gap-2 text-sm"
+                          >
+                            {isOrganizingDocuments ? (
+                              <>
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                整理中...
+                              </>
+                            ) : (
+                              <>
+                                📁 ドキュメント整理
+                                <span className="text-xs">▼</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     )}
-                  </button>
+                  </div>
 
                   {/* スライド生成ボタン */}
                   <button
@@ -1671,126 +1810,6 @@ const ProjectManager = ({ isOpen, onClose, panelTitle }) => {
                       <>
                         📊 スライド生成
                       </>
-                    )}
-                  </button>
-
-                  {/* ドキュメント生成ボタン */}
-                  <button
-                    onClick={() => handleDocumentGeneration(selectedProject)}
-                    disabled={isGeneratingDocument || isGeneratingSlides || isGeneratingPaperTopic || isSearchingReferences || isOrganizingDocuments || isCollectingMaterials || isCreatingRequirements || isScanning || isProcessing || isGeneratingPaper}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 flex items-center gap-2 relative group"
-                    title={!openaiService.isConfigured() ? "OpenAI API設定が必要です" : "Presentationフォルダのプレゼン資料を基にMainドキュメントを生成"}
-                  >
-                    {isGeneratingDocument ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        ドキュメント生成中...
-                      </>
-                    ) : (
-                      <>
-                        📄 ドキュメント生成
-                        {!openaiService.isConfigured() && (
-                          <span className="text-xs bg-yellow-400 text-yellow-800 px-1 rounded">API未設定</span>
-                        )}
-                      </>
-                    )}
-                    {!openaiService.isConfigured() && (
-                      <div className="absolute -top-2 -right-2 w-3 h-3 bg-yellow-400 rounded-full border-2 border-white"></div>
-                    )}
-                  </button>
-
-                  {/* 参考論文検索ボタン（検索元選択付き） */}
-                  <div className="relative search-source-selector-container">
-                    <button
-                      onClick={() => setShowSearchSourceSelector(!showSearchSourceSelector)}
-                      disabled={isSearchingReferences || isOrganizingDocuments || isCollectingMaterials || isCreatingRequirements || isGeneratingSlides || isGeneratingPaperTopic || isGeneratingDocument || isGeneratingPaper || isScanning || isProcessing}
-                      className="px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 disabled:bg-gray-300 flex items-center gap-2"
-                    >
-                      {isSearchingReferences ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          論文検索中...
-                        </>
-                      ) : (
-                        <>
-                          📚 参考論文検索
-                          <span className="text-xs">▼</span>
-                        </>
-                      )}
-                    </button>
-
-                    {/* 検索元選択ドロップダウン */}
-                    {showSearchSourceSelector && (
-                      <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10 min-w-48">
-                        <div className="text-sm font-medium text-gray-700 mb-2">検索元を選択</div>
-                        
-                        <div className="space-y-2">
-                          <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                            <input
-                              type="radio"
-                              name="searchSource"
-                              value="ieee"
-                              checked={searchSource === 'ieee'}
-                              onChange={(e) => setSearchSource(e.target.value)}
-                              className="text-teal-600"
-                            />
-                            <span className="text-sm">🔬 IEEE Xplore</span>
-                          </label>
-                          
-                          <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                            <input
-                              type="radio"
-                              name="searchSource"
-                              value="semantic-scholar"
-                              checked={searchSource === 'semantic-scholar'}
-                              onChange={(e) => setSearchSource(e.target.value)}
-                              className="text-teal-600"
-                            />
-                            <span className="text-sm">🎓 Semantic Scholar</span>
-                          </label>
-                        </div>
-                        
-                                              <div className="mt-2 text-xs text-gray-500">
-                        {searchSource === 'ieee' ? 
-                          'IEEE Xplore: 技術・工学系論文に特化（APIキー必要）' : 
-                          'Semantic Scholar: AI・機械学習系論文に特化（無料、CORS制限あり）'
-                        }
-                      </div>
-                        
-                        <div className="mt-3 pt-2 border-t border-gray-200">
-                          <button
-                            onClick={() => {
-                              handleReferenceSearch(selectedProject);
-                              setShowSearchSourceSelector(false);
-                            }}
-                            className="w-full px-3 py-1 bg-teal-500 text-white text-sm rounded hover:bg-teal-600"
-                          >
-                            検索実行
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 論文生成ボタン */}
-                  <button
-                    onClick={() => handlePaperGeneration(selectedProject)}
-                    disabled={isGeneratingPaper || isSearchingReferences || isOrganizingDocuments || isCollectingMaterials || isCreatingRequirements || isGeneratingSlides || isGeneratingPaperTopic || isGeneratingDocument || isScanning || isProcessing || !lastScanResult}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:bg-gray-300 flex items-center gap-2 relative group"
-                    title={!lastScanResult ? "まず「変更をスキャン」を実行してください" : "Document/ForAcaとAcademiaフォルダの内容を基に論文を生成"}
-                  >
-                    {isGeneratingPaper ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        論文生成中...
-                      </>
-                    ) : (
-                      <>
-                        📄 論文生成
-                      </>
-                    )}
-                    {!lastScanResult && (
-                      <div className="absolute -top-2 -right-2 w-3 h-3 bg-yellow-400 rounded-full border-2 border-white"></div>
                     )}
                   </button>
 
@@ -1813,88 +1832,119 @@ const ProjectManager = ({ isOpen, onClose, panelTitle }) => {
                     )}
                   </button>
 
-                  {/* ドキュメント整理ボタン（カテゴリ選択付き） */}
-                  <div className="relative category-selector-container">
-                    <button
-                      onClick={() => setShowCategorySelector(!showCategorySelector)}
-                      disabled={isOrganizingDocuments || isSearchingReferences || isCollectingMaterials || isCreatingRequirements || isGeneratingSlides || isGeneratingPaperTopic || isGeneratingDocument || isGeneratingPaper || isScanning || isProcessing}
-                      className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:bg-gray-300 flex items-center gap-2"
-                    >
-                      {isOrganizingDocuments ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          整理中...
-                        </>
-                      ) : (
-                        <>
-                          📁 ドキュメント整理
-                          <span className="text-xs">▼</span>
-                        </>
-                      )}
-                    </button>
-
-                    {/* カテゴリ選択ドロップダウン */}
-                    {showCategorySelector && (
-                      <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10 min-w-48">
-                        <div className="text-sm font-medium text-gray-700 mb-2">整理対象カテゴリ</div>
+                  {/* 参考論文検索の検索元選択ドロップダウン（機能メニューから呼び出される） */}
+                  {showSearchSourceSelector && (
+                    <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10 min-w-48">
+                      <div className="text-sm font-medium text-gray-700 mb-2">検索元を選択</div>
+                      
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <input
+                            type="radio"
+                            name="searchSource"
+                            value="ieee"
+                            checked={searchSource === 'ieee'}
+                            onChange={(e) => setSearchSource(e.target.value)}
+                            className="text-teal-600"
+                          />
+                          <span className="text-sm">🔬 IEEE Xplore</span>
+                        </label>
                         
-                        {/* 全選択/全解除ボタン */}
-                        <div className="flex gap-2 mb-3">
-                          <button
-                            onClick={() => toggleAllCategories(true)}
-                            className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                          >
-                            全選択
-                          </button>
-                          <button
-                            onClick={() => toggleAllCategories(false)}
-                            className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                          >
-                            全解除
-                          </button>
-                        </div>
-
-                        {/* カテゴリチェックボックス */}
-                        <div className="space-y-2">
-                          {Object.entries({
-                            Main: { label: 'Main - 大きい方向性', color: 'text-blue-600' },
-                            Topic: { label: 'Topic - トピック一覧', color: 'text-green-600' },
-                            ForTech: { label: 'ForTech - 技術系', color: 'text-orange-600' },
-                            ForAca: { label: 'ForAca - 学術系', color: 'text-purple-600' }
-                          }).map(([category, config]) => (
-                            <label key={category} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                              <input
-                                type="checkbox"
-                                checked={selectedCategories[category]}
-                                onChange={() => toggleCategory(category)}
-                                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                              />
-                              <span className={`text-sm ${config.color}`}>
-                                {config.label}
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-
-                        {/* 実行ボタン */}
-                        <div className="mt-3 pt-2 border-t border-gray-200">
-                          <button
-                            onClick={() => {
-                              setShowCategorySelector(false);
-                              handleDocumentOrganization(selectedProject);
-                            }}
-                            disabled={Object.values(selectedCategories).every(v => !v)}
-                            className="w-full px-3 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:bg-gray-300 text-sm"
-                          >
-                            選択したカテゴリで整理実行
-                          </button>
-                          {Object.values(selectedCategories).every(v => !v) && (
-                            <p className="text-xs text-red-500 mt-1">少なくとも1つのカテゴリを選択してください</p>
-                          )}
-                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <input
+                            type="radio"
+                            name="searchSource"
+                            value="semantic-scholar"
+                            checked={searchSource === 'semantic-scholar'}
+                            onChange={(e) => setSearchSource(e.target.value)}
+                            className="text-teal-600"
+                          />
+                          <span className="text-sm">🎓 Semantic Scholar</span>
+                        </label>
                       </div>
-                    )}
-                  </div>
+                      
+                      <div className="mt-2 text-xs text-gray-500">
+                        {searchSource === 'ieee' ? 
+                          'IEEE Xplore: 技術・工学系論文に特化（APIキー必要）' : 
+                          'Semantic Scholar: AI・機械学習系論文に特化（無料、CORS制限あり）'
+                        }
+                      </div>
+                      
+                      <div className="mt-3 pt-2 border-t border-gray-200">
+                        <button
+                          onClick={() => {
+                            handleReferenceSearch(selectedProject);
+                            setShowSearchSourceSelector(false);
+                          }}
+                          className="w-full px-3 py-1 bg-teal-500 text-white text-sm rounded hover:bg-teal-600"
+                        >
+                          検索実行
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ドキュメント整理のカテゴリ選択ドロップダウン（機能メニューから呼び出される） */}
+                  {showCategorySelector && (
+                    <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10 min-w-48">
+                      <div className="text-sm font-medium text-gray-700 mb-2">整理対象カテゴリ</div>
+                      
+                      {/* 全選択/全解除ボタン */}
+                      <div className="flex gap-2 mb-3">
+                        <button
+                          onClick={() => toggleAllCategories(true)}
+                          className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                        >
+                          全選択
+                        </button>
+                        <button
+                          onClick={() => toggleAllCategories(false)}
+                          className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                        >
+                          全解除
+                        </button>
+                      </div>
+
+                      {/* カテゴリチェックボックス */}
+                      <div className="space-y-2">
+                        {Object.entries({
+                          Main: { label: 'Main - 大きい方向性', color: 'text-blue-600' },
+                          Topic: { label: 'Topic - トピック一覧', color: 'text-green-600' },
+                          ForTech: { label: 'ForTech - 技術系', color: 'text-orange-600' },
+                          ForAca: { label: 'ForAca - 学術系', color: 'text-purple-600' }
+                        }).map(([category, config]) => (
+                          <label key={category} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                            <input
+                              type="checkbox"
+                              checked={selectedCategories[category]}
+                              onChange={() => toggleCategory(category)}
+                              className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                            />
+                            <span className={`text-sm ${config.color}`}>
+                              {config.label}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+
+                      {/* 実行ボタン */}
+                      <div className="mt-3 pt-2 border-t border-gray-200">
+                        <button
+                          onClick={() => {
+                            setShowCategorySelector(false);
+                            handleDocumentOrganization(selectedProject);
+                          }}
+                          disabled={Object.values(selectedCategories).every(v => !v)}
+                          className="w-full px-3 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:bg-gray-300 text-sm"
+                        >
+                          選択したカテゴリで整理実行
+                        </button>
+                        {Object.values(selectedCategories).every(v => !v) && (
+                          <p className="text-xs text-red-500 mt-1">少なくとも1つのカテゴリを選択してください</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* 要件ファイル作成ボタン（対象選択付き） */}
                   <div className="relative requirements-selector-container">
